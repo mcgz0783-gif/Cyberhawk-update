@@ -1,2 +1,28 @@
 # Google App Engine generated folder
 appengine-generated/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment secrets — NEVER commit
+.env
+.env.local
+.env.production
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

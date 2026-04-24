@@ -1,0 +1,1376 @@
+// =====================================================================
+// CYBERSEC UPDATES — Full React Application
+// AI: Google Gemini (prod) / Anthropic Claude (preview fallback)
+// =====================================================================
+import { useState, useEffect, useRef } from "react";
+
+// ─── FONTS ────────────────────────────────────────────────────────────
+(() => {
+  const l = document.createElement("link");
+  l.rel = "stylesheet";
+  l.href = "https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@300;400;600;700;900&family=Rajdhani:wght@400;500;600;700&display=swap";
+  document.head.appendChild(l);
+})();
+
+// ─── THEME ───────────────────────────────────────────────────────────
+const T = {
+  bg: "#060b14", surface: "#0c1424", card: "#0f1d30",
+  border: "#1a2d45", accent: "#00e5ff", green: "#00ff9d",
+  red: "#ff2d55", yellow: "#ffd60a", purple: "#9b5de5",
+  orange: "#ff6b35", text: "#c8d8e8", muted: "#5a7a99", white: "#eaf4ff",
+};
+
+// ─── GLOBAL CSS ───────────────────────────────────────────────────────
+(() => {
+  const s = document.createElement("style");
+  s.textContent = `
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background:${T.bg}; color:${T.text}; font-family:'Rajdhani',sans-serif; }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:${T.bg}; }
+    ::-webkit-scrollbar-thumb { background:${T.accent}; border-radius:3px; }
+
+    @keyframes pulse-glow { 0%,100%{text-shadow:0 0 8px ${T.accent},0 0 20px ${T.accent}44} 50%{text-shadow:0 0 20px ${T.accent},0 0 50px ${T.accent}88} }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes ticker { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes chat-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes modal-in { from{opacity:0;transform:scale(0.96) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    @keyframes typing { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)} }
+
+    .fade-in { animation:fadeUp 0.5s ease both; }
+    .card-hover { transition:transform .3s ease,box-shadow .3s ease,border-color .3s ease; }
+    .card-hover:hover { transform:translateY(-5px); box-shadow:0 16px 40px ${T.accent}18; border-color:${T.accent} !important; }
+    .glow { animation:pulse-glow 3s ease-in-out infinite; color:${T.accent}; }
+
+    .nav-btn { background:none; border:none; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:700;
+      font-size:13px; letter-spacing:2px; text-transform:uppercase; padding:4px 0; position:relative;
+      transition:color .2s; }
+    .nav-btn::after { content:''; position:absolute; bottom:-4px; left:0; width:0; height:2px;
+      background:${T.accent}; box-shadow:0 0 8px ${T.accent}; transition:width .3s ease; }
+    .nav-btn:hover::after, .nav-btn.active::after { width:100%; }
+    .nav-btn:hover, .nav-btn.active { color:${T.accent} !important; }
+
+    .btn-primary { background:${T.accent}18; border:1px solid ${T.accent}; color:${T.accent};
+      padding:10px 24px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:13px;
+      letter-spacing:2px; text-transform:uppercase; cursor:pointer; transition:all .3s;
+      position:relative; overflow:hidden; }
+    .btn-primary::before { content:''; position:absolute; top:0; left:-100%; width:100%; height:100%;
+      background:linear-gradient(90deg,transparent,${T.accent}30,transparent); transition:left .4s; }
+    .btn-primary:hover::before { left:100%; }
+    .btn-primary:hover { background:${T.accent}28; box-shadow:0 0 20px ${T.accent}44; transform:translateY(-2px); }
+    .btn-primary:disabled { opacity:.5; cursor:default; transform:none; }
+
+    .btn-ghost { background:transparent; border:1px solid ${T.border}; color:${T.muted};
+      padding:10px 24px; font-family:'Rajdhani',sans-serif; font-weight:600; font-size:13px;
+      letter-spacing:1px; cursor:pointer; transition:all .2s; }
+    .btn-ghost:hover { border-color:${T.accent}55; color:${T.text}; }
+
+    .btn-green { background:${T.green}18; border:1px solid ${T.green}; color:${T.green};
+      padding:8px 18px; font-family:'Rajdhani',sans-serif; font-weight:700; font-size:12px;
+      letter-spacing:1.5px; text-transform:uppercase; cursor:pointer; transition:all .3s; }
+    .btn-green:hover { background:${T.green}28; box-shadow:0 0 14px ${T.green}44; }
+
+    .input-f { background:${T.surface}; border:1px solid ${T.border}; color:${T.white};
+      padding:12px 16px; font-family:'Rajdhani',sans-serif; font-size:15px; width:100%;
+      outline:none; transition:border-color .3s,box-shadow .3s; }
+    .input-f:focus { border-color:${T.accent}; box-shadow:0 0 0 3px ${T.accent}18; }
+    .input-f::placeholder { color:${T.muted}; }
+    textarea.input-f { resize:vertical; min-height:120px; }
+
+    .tag { padding:3px 10px; font-family:'Share Tech Mono',monospace; font-size:11px;
+      letter-spacing:1px; border-radius:2px; }
+
+    .hero-grid { background-image:linear-gradient(${T.accent}04 1px,transparent 1px),
+      linear-gradient(90deg,${T.accent}04 1px,transparent 1px); background-size:44px 44px; }
+
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:9000;
+      display:flex; align-items:flex-start; justify-content:center; padding:80px 16px 16px;
+      overflow-y:auto; backdrop-filter:blur(6px); animation:fadeUp .2s ease; }
+    .modal-box { background:${T.surface}; border:1px solid ${T.border}; width:100%; max-width:820px;
+      position:relative; animation:modal-in .3s ease; }
+
+    .chat-widget { position:fixed; bottom:24px; right:24px; z-index:8000; }
+    .chat-fab { width:58px; height:58px; background:linear-gradient(135deg,${T.accent},${T.green});
+      border:none; cursor:pointer; font-size:24px; display:flex; align-items:center;
+      justify-content:center; box-shadow:0 6px 30px ${T.accent}55; transition:transform .3s;
+      border-radius:2px; }
+    .chat-fab:hover { transform:scale(1.08); }
+    .chat-panel { position:absolute; bottom:70px; right:0; width:360px; max-height:580px;
+      background:${T.surface}; border:1px solid ${T.border}; display:flex; flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,.6); animation:modal-in .3s ease; border-radius:2px; }
+    .chat-msg { animation:chat-in .3s ease; }
+    .chat-input-row { display:flex; border-top:1px solid ${T.border}; }
+    .chat-input { flex:1; background:transparent; border:none; color:${T.white}; padding:12px 16px;
+      font-family:'Rajdhani',sans-serif; font-size:14px; outline:none; }
+    .chat-send { background:${T.accent}22; border:none; border-left:1px solid ${T.border};
+      color:${T.accent}; padding:0 16px; cursor:pointer; font-size:18px; transition:background .2s; }
+    .chat-send:hover { background:${T.accent}40; }
+    .typing-dot { display:inline-block; width:6px; height:6px; background:${T.muted};
+      border-radius:50%; margin:0 2px; }
+    .typing-dot:nth-child(1){animation:typing 1s .0s infinite}
+    .typing-dot:nth-child(2){animation:typing 1s .2s infinite}
+    .typing-dot:nth-child(3){animation:typing 1s .4s infinite}
+
+    .filter-btn { background:transparent; border:1px solid ${T.border}; color:${T.muted};
+      padding:6px 14px; cursor:pointer; font-family:'Rajdhani',sans-serif; font-weight:600;
+      font-size:12px; letter-spacing:1px; transition:all .2s; }
+    .filter-btn.active { background:${T.accent}20; border-color:${T.accent}; color:${T.accent}; }
+    .filter-btn:hover:not(.active) { border-color:${T.accent}55; color:${T.text}; }
+
+    .progress-line { height:2px; background:linear-gradient(90deg,${T.accent},${T.green});
+      box-shadow:0 0 10px ${T.accent}; }
+
+    .noise { position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.022;
+      background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+    @media(max-width:768px) {
+      .hide-mobile { display:none !important; }
+      .chat-panel { width:calc(100vw - 48px); right:-8px; }
+    }
+    @media(max-width:600px) {
+      .grid-2col { grid-template-columns:1fr !important; }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
+// ─── AI SERVICE ──────────────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are CyberBot, the AI assistant for CyberSec Updates — a premier cybersecurity intelligence and education platform.
+
+YOUR ROLE:
+- Answer any cybersecurity question clearly and accurately
+- Help users understand threats, attack vectors, defense strategies, and security tools
+- Guide users to relevant content on CyberSec Updates (news, blogs, books, insights)
+- Explain security frameworks: NIST, Zero Trust, MITRE ATT&CK, ISO 27001, SOC 2
+- Discuss CVEs, malware families, APT groups, and current threat intelligence
+- Advise on career paths, certifications (CISSP, CEH, OSCP, Security+), and skill development
+- Help with CTF challenges and penetration testing concepts
+- Explain defensive security: SOC, SIEM, EDR, XDR, SOAR, threat hunting
+
+PLATFORM CONTENT:
+News: Apache Zero-Day (CVE-2025-1234), 12M Healthcare breach, LLM prompt injection surge, CISA scanning framework, LockBit 4.0 European attacks, APT41 semiconductor espionage
+Blogs: Zero Trust implementation guide, Phishing anatomy, Kubernetes hardening, SOC setup in 90 days, Bug bounty strategies, Threat intelligence feeds
+Insights: Ransomware 2025 report, AI threat landscape, Critical infrastructure attacks, CISO burnout crisis
+Books: Art of Intrusion (Mitnick), Hacking Art of Exploitation, Web App Hacker's Handbook, Blue Team Handbook, Threat Intelligence, Zero Trust Networks, Practical Malware Analysis, Social Engineering
+
+RESPONSE STYLE:
+- Be precise, concise, and professional
+- Use clear structure with bullet points when listing multiple items
+- Include both offensive and defensive perspectives when discussing attacks
+- Always recommend safe, legal, and ethical security practices
+- For beginner questions: explain clearly without jargon first, then introduce terms
+- For expert questions: be technical and comprehensive
+
+Start responses directly without preamble. Be helpful, accurate, and security-focused.`;
+
+async function askCyberBot(messages) {
+  // Detect environment: use Gemini if API key is set, else Anthropic (artifact preview)
+  const geminiKey = typeof import !== "undefined" && typeof import.meta !== "undefined"
+    ? import.meta?.env?.VITE_GEMINI_API_KEY
+    : null;
+
+  if (geminiKey) {
+    // ── Google Gemini API ──────────────────────────────────────────
+    const contents = messages.map(m => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents,
+          generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+        }),
+      }
+    );
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "I couldn't generate a response.";
+  } else {
+    // ── Anthropic Claude API (artifact / fallback) ─────────────────
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        messages,
+      }),
+    });
+    const data = await res.json();
+    return data.content?.find(b => b.type === "text")?.text || "I couldn't generate a response.";
+  }
+}
+
+// ─── DATA ─────────────────────────────────────────────────────────────
+const NEWS = [
+  {
+    id: 1, cat: "Threat Intel", color: T.red, icon: "⚠️",
+    title: "Critical Zero-Day in Apache HTTP Server Actively Exploited",
+    date: "Apr 22, 2025", read: "4 min",
+    summary: "Security researchers have confirmed active exploitation of a critical RCE vulnerability in Apache HTTP Server affecting millions of web servers globally.",
+    tags: ["CVE-2025-1234", "RCE", "Apache"],
+    content: [
+      "A critical Remote Code Execution (RCE) vulnerability tracked as CVE-2025-1234 has been discovered in Apache HTTP Server versions 2.4.0 through 2.4.58, affecting an estimated 31% of all web servers globally. The flaw exists in the mod_rewrite module and allows unauthenticated attackers to execute arbitrary code with the privileges of the web server process.",
+      "The vulnerability was first reported to the Apache Software Foundation by researchers at Shadowserver Foundation on April 15, 2025. However, threat intelligence firms including Recorded Future and GreyNoise have detected active exploitation in the wild beginning April 19, with attack traffic originating from multiple countries including Russia, China, and several Eastern European nations.",
+      "Proof-of-concept exploit code has been publicly published on GitHub, dramatically lowering the skill bar required for exploitation. Security teams should treat this as a critical priority. The vulnerability requires no authentication and can be exploited remotely with a single malformed HTTP request, making it particularly dangerous for internet-facing servers.",
+      "Apache has released version 2.4.59 which patches this vulnerability. Organizations are urged to update immediately. For those unable to patch immediately, disabling the mod_rewrite module provides a temporary mitigation, though this may break existing configurations.",
+    ],
+    keyPoints: [
+      "Affects Apache HTTP Server 2.4.0 – 2.4.58 (patch to 2.4.59)",
+      "No authentication required for exploitation",
+      "Active exploitation confirmed since April 19, 2025",
+      "Temporary mitigation: disable mod_rewrite module",
+      "CVSS Score: 9.8 (Critical)",
+    ],
+  },
+  {
+    id: 2, cat: "Data Breach", color: T.orange, icon: "🏥",
+    title: "Major Healthcare Provider Exposes 12M Patient Records",
+    date: "Apr 21, 2025", read: "3 min",
+    summary: "A misconfigured cloud storage bucket exposed sensitive patient data including SSNs, medical histories, and insurance details for over 12 million individuals.",
+    tags: ["Healthcare", "Cloud", "PII"],
+    content: [
+      "MedCore Health Systems, a provider operating across 14 US states, inadvertently exposed a cloud storage bucket containing over 12 million patient records for an estimated 47 days between February 28 and April 16, 2025. The exposed data included names, Social Security Numbers, dates of birth, full medical histories, prescription records, and health insurance policy details.",
+      "The breach was discovered by independent security researcher Jeremiah Fowler, who immediately notified MedCore. The company secured the bucket within hours of notification but confirmed the data had been indexed by at least two automated web scrapers, meaning the information may already be in circulation on dark web marketplaces.",
+      "This incident follows a troubling pattern in the healthcare sector. In 2024 alone, healthcare organizations accounted for 35% of all major data breaches in the United States. The HHS Office for Civil Rights has opened an investigation, and MedCore faces potential HIPAA fines that could reach $1.9 million per violation category.",
+      "Security experts emphasize that S3 bucket misconfigurations remain one of the most common and preventable causes of data exposure. Organizations should implement cloud security posture management (CSPM) tools, enable S3 Block Public Access at the account level, and conduct regular automated audits of storage permissions.",
+    ],
+    keyPoints: [
+      "12 million patients affected across 14 states",
+      "Data exposed for 47 days in misconfigured S3 bucket",
+      "SSNs, medical records, insurance data compromised",
+      "HHS/OCR investigation opened — potential $1.9M+ fines",
+      "Implement CSPM and S3 Block Public Access immediately",
+    ],
+  },
+  {
+    id: 3, cat: "AI Security", color: T.accent, icon: "🤖",
+    title: "LLM Prompt Injection Attacks Surge 340% in Q1 2025",
+    date: "Apr 20, 2025", read: "5 min",
+    summary: "New threat intelligence report reveals dramatic increase in AI-targeted attacks as enterprises accelerate LLM adoption without adequate security controls.",
+    tags: ["AI", "LLM", "Prompt Injection"],
+    content: [
+      "A comprehensive threat intelligence report published jointly by Palo Alto Networks Unit 42 and the AI Security Alliance reveals that prompt injection attacks targeting enterprise LLM deployments increased by 340% in Q1 2025 compared to the same period in 2024. The surge is directly correlated with the rapid adoption of AI-powered tools in customer service, code generation, and data analysis workflows.",
+      "Prompt injection attacks exploit the inability of LLMs to distinguish between legitimate user instructions and malicious commands embedded in input data. Researchers identified three primary attack patterns: direct injection (malicious prompts from users), indirect injection (poisoned data in documents or web pages the LLM processes), and jailbreaking (prompts designed to bypass safety filters and extract confidential system prompts).",
+      "The most alarming finding is the emergence of 'agent hijacking' attacks, where malicious actors target LLM-based autonomous agents — systems that can browse the web, execute code, and interact with external APIs. A successful hijacking can allow attackers to exfiltrate data, send unauthorized communications, or manipulate business processes, all while appearing to be legitimate AI operations.",
+      "Defensive measures include implementing input validation and sanitization layers, using separate context windows for untrusted data, deploying LLM firewalls like Rebuff or LLM Guard, and treating all LLM outputs as untrusted before acting on them. Organizations should also establish clear policies on what actions their AI agents are permitted to perform autonomously.",
+    ],
+    keyPoints: [
+      "340% increase in prompt injection attacks in Q1 2025",
+      "Three main vectors: direct, indirect injection, and jailbreaking",
+      "New threat: 'Agent hijacking' in autonomous LLM systems",
+      "Defensive tools: Rebuff, LLM Guard, input validation layers",
+      "Treat all LLM outputs as untrusted before execution",
+    ],
+  },
+  {
+    id: 4, cat: "Tools", color: T.green, icon: "🛡️",
+    title: "CISA Releases Updated Vulnerability Scanning Framework v3.2",
+    date: "Apr 19, 2025", read: "3 min",
+    summary: "CISA published an enhanced vulnerability scanning toolkit with improved detection for modern attack vectors including cloud misconfigurations and AI system weaknesses.",
+    tags: ["CISA", "Scanning", "Framework"],
+    content: [
+      "The Cybersecurity and Infrastructure Security Agency (CISA) has released version 3.2 of its Continuous Diagnostics and Mitigation (CDM) vulnerability scanning framework, introducing significant enhancements in cloud security assessment, operational technology (OT) vulnerability detection, and artificial intelligence system security evaluation.",
+      "The updated framework includes 847 new detection signatures, with 312 specifically targeting cloud infrastructure misconfigurations across AWS, Azure, and Google Cloud Platform. Notably, v3.2 introduces the first official scanning modules for LLM security assessment, allowing organizations to evaluate the prompt injection resistance and data leakage potential of their AI deployments.",
+      "CISA Director Jen Easterly stated that the framework is available free of charge to all federal agencies and strongly encouraged adoption by critical infrastructure operators in the private sector. The agency estimates that organizations fully implementing CDM v3.2 detect vulnerabilities 3.4 times faster than those using traditional point-in-time scanning approaches.",
+      "The framework integrates with major SIEM platforms including Splunk, Microsoft Sentinel, and IBM QRadar, and now supports automated remediation workflows through integration with common ticketing systems. Download and documentation are available through the official CISA CDM portal.",
+    ],
+    keyPoints: [
+      "847 new detection signatures including 312 cloud-specific",
+      "First official LLM security assessment modules",
+      "Free for federal agencies, available to private sector",
+      "Integrates with Splunk, Sentinel, QRadar",
+      "3.4x faster vulnerability detection vs. point-in-time scanning",
+    ],
+  },
+  {
+    id: 5, cat: "Ransomware", color: T.red, icon: "🔒",
+    title: "LockBit 4.0 Targets Critical Infrastructure Across Europe",
+    date: "Apr 18, 2025", read: "6 min",
+    summary: "LockBit's latest variant uses advanced evasion techniques and has compromised 23 critical infrastructure organizations across seven European nations.",
+    tags: ["Ransomware", "LockBit", "Critical Infra"],
+    content: [
+      "LockBit 4.0, the latest iteration of the notorious ransomware-as-a-service operation, has been confirmed in attacks against 23 critical infrastructure organizations across Germany, France, the Netherlands, Italy, Spain, Poland, and Romania. The campaign, which began in early March 2025, has targeted energy distribution networks, water treatment facilities, and hospital systems — with three hospitals forced to divert emergency patients to alternative facilities.",
+      "LockBit 4.0 introduces several significant technical advances over its predecessor. The malware now employs a custom kernel-mode driver to disable security tools before encryption begins, uses intermittent encryption (encrypting only portions of files to maximize speed while maintaining file corruption), and leverages legitimate cloud services including OneDrive and Google Drive for command-and-control communications to evade network detection.",
+      "Europol's European Cybercrime Centre (EC3) has launched a coordinated response operation involving law enforcement from all seven affected nations. Investigators believe the attacks are being coordinated by a core team of 15-20 individuals operating from multiple jurisdictions, with hundreds of affiliates conducting the actual intrusions.",
+      "Organizations should immediately patch CVE-2025-2341 (a VPN gateway vulnerability being used as the primary initial access vector), implement network segmentation to isolate OT/ICS systems, ensure offline backups are current and tested, and review all remote access paths for unauthorized sessions.",
+    ],
+    keyPoints: [
+      "23 critical infrastructure targets in 7 European countries",
+      "New kernel-mode driver disables AV/EDR before encryption",
+      "Intermittent encryption evades file-based detection",
+      "C2 via legitimate cloud services (OneDrive, Drive)",
+      "Initial access vector: CVE-2025-2341 — patch immediately",
+    ],
+  },
+  {
+    id: 6, cat: "Nation State", color: T.purple, icon: "🌐",
+    title: "APT41 Campaign Targets Semiconductor Supply Chain",
+    date: "Apr 17, 2025", read: "7 min",
+    summary: "Mandiant attributes an 8-month espionage campaign against semiconductor manufacturers to Chinese state-sponsored threat actor APT41, stealing design IP worth billions.",
+    tags: ["APT41", "Espionage", "Supply Chain"],
+    content: [
+      "Mandiant Threat Intelligence has published a detailed report attributing an 8-month cyber espionage campaign against semiconductor manufacturers to APT41, a Chinese state-sponsored threat group operating under the direction of China's Ministry of State Security. The campaign targeted 11 semiconductor companies across Taiwan, South Korea, Japan, and the Netherlands, with the primary objective of stealing chip design intellectual property and manufacturing process documentation.",
+      "The intrusions demonstrate sophisticated tradecraft consistent with APT41's known capabilities. Initial access was achieved through spear-phishing emails targeting engineers and supply chain partners, using lure documents disguised as conference papers and industry reports. Once inside, the group deployed a new custom implant dubbed SILKWORM by Mandiant, which uses encrypted HTTPS traffic to blend with normal web traffic and maintains persistence through legitimate Windows scheduled tasks.",
+      "The stolen data includes EDA (Electronic Design Automation) tool configurations, chip architecture documentation, and manufacturing process recipes. Intelligence analysts estimate the value of the exfiltrated IP at between $3-5 billion. The timing is significant given ongoing geopolitical tensions over semiconductor technology and export controls, suggesting the campaign is directly tied to China's stated goal of achieving semiconductor self-sufficiency.",
+      "Defenders should focus on data loss prevention (DLP) for engineering workstations, monitor for unusual EDA tool usage and large data transfers, implement strict email filtering for executable attachments, and ensure supply chain partners meet baseline security requirements before granting network access.",
+    ],
+    keyPoints: [
+      "11 semiconductor companies compromised over 8 months",
+      "New implant SILKWORM uses HTTPS C2, persists via scheduled tasks",
+      "Estimated $3-5 billion in IP stolen",
+      "Supply chain partners used as initial access vectors",
+      "Focus DLP controls on EDA tools and engineering systems",
+    ],
+  },
+];
+
+const BLOGS = [
+  {
+    id: 1, featured: true, img: "🏗️", cat: "Architecture", read: "12 min",
+    title: "Zero Trust Architecture: A Practical Implementation Guide",
+    author: "Dr. Sarah Chen", date: "Apr 20, 2025",
+    summary: "Zero Trust is no longer optional. This guide walks through implementing ZTA in legacy enterprise environments, covering identity, microsegmentation, and continuous verification.",
+    content: [
+      "Zero Trust is not a product you can buy — it's a philosophy you implement. The core principle, coined by John Kindervag in 2010, is simple: never trust, always verify. Every user, device, and network flow must be authenticated, authorized, and continuously validated regardless of where it originates. After a decade of adoption struggles, Zero Trust has become the dominant security paradigm of the 2020s, driven by the collapse of the traditional network perimeter.",
+      "The first pillar of Zero Trust is identity. Your identity provider (IdP) becomes the new perimeter. Every access request must be tied to a verified identity with multi-factor authentication. Privileged Identity Management (PIM) ensures that elevated permissions are granted just-in-time and just-enough. Tools like Okta, Azure AD, and Ping Identity provide the foundation, but the real work is in defining fine-grained access policies and conducting regular access reviews.",
+      "Microsegmentation is the second critical pillar. Instead of flat networks where a compromised endpoint can reach any other system, microsegmentation divides the network into isolated zones. East-west traffic (server-to-server) is scrutinized just as much as north-south (user-to-server). Implement this progressively: start with your crown jewel applications and expand outward. Tools like Illumio, Guardicore, and VMware NSX can enforce microsegmentation at the workload level without requiring network redesigns.",
+      "Device trust is often the overlooked third pillar. Every device requesting access should be evaluated against a baseline: Is it enrolled in MDM? Is the OS patched? Is the disk encrypted? Is there endpoint protection running? Conditional access policies enforce these requirements automatically. A personal laptop trying to access corporate resources should receive a different level of access than a managed, compliant corporate device.",
+      "Continuous monitoring closes the loop. Zero Trust is not a set-it-and-forget-it model. User and Entity Behavior Analytics (UEBA) establishes normal baselines and triggers alerts for anomalies. If a user who normally logs in from London at 9 AM suddenly authenticates from Brazil at 3 AM, access should be challenged or blocked automatically. Combine UEBA with your SIEM for comprehensive visibility.",
+    ],
+    keyPoints: ["Identity is the new perimeter — implement MFA everywhere", "Start microsegmentation with crown jewel applications", "Device trust: MDM enrollment, patch status, encryption", "Continuous monitoring via UEBA integrated with SIEM", "ZTA is a journey, not a product — plan for 18-24 months"],
+  },
+  {
+    id: 2, featured: false, img: "🎣", cat: "Threat Analysis", read: "8 min",
+    title: "The Anatomy of a Modern Phishing Campaign",
+    author: "Marcus Webb", date: "Apr 18, 2025",
+    summary: "Breaking down a real-world spear-phishing operation from initial recon to credential harvesting — and how defenders can identify each stage.",
+    content: [
+      "Modern phishing attacks bear little resemblance to the Nigerian prince emails of the early 2000s. Today's spear-phishing campaigns are meticulously researched, technically sophisticated operations that can bypass traditional email security controls with alarming regularity. Understanding how these attacks are constructed is the first step in defending against them.",
+      "The attack begins with reconnaissance — often weeks before any email is sent. Attackers harvest information from LinkedIn (job titles, recent projects, team structures), company websites (email formats, executive names), social media (personal interests, recent life events), and even public code repositories (internal tool names, API endpoints). This intelligence allows them to craft emails that reference real projects, real colleagues, and real business contexts.",
+      "The phishing email itself is a masterpiece of social engineering. Modern campaigns register domains that closely mimic the target organization (e.g., company-hr-portal.com instead of company.com), obtain valid SSL certificates (making the padlock appear in browsers), and clone the target organization's email templates pixel-for-pixel. The pretext typically creates urgency — an overdue invoice, a mandatory security awareness training, an exclusive document shared by the CEO.",
+      "Once the victim clicks, they're directed to a credential harvesting page that perfectly mimics Microsoft 365, Google Workspace, or corporate SSO login pages. Advanced campaigns use Adversary-in-the-Middle (AiTM) proxies like Evilginx3 that can capture session cookies even when MFA is enabled, bypassing authentication entirely.",
+      "Detection requires a layered approach: DMARC/DKIM/SPF enforcement, anti-phishing browser extensions, MFA with phishing-resistant methods (hardware keys or passkeys rather than TOTP), and security awareness training that includes realistic simulations. The human element remains critical — when technical controls fail, a well-trained user is the last line of defense.",
+    ],
+    keyPoints: ["Attackers spend weeks on recon before sending a single email", "Domain squatting with valid SSL certificates defeats browser warnings", "AiTM proxies bypass MFA by stealing session cookies", "Phishing-resistant MFA (passkeys, FIDO2) is the real solution", "Realistic phishing simulations > compliance-driven training"],
+  },
+  {
+    id: 3, featured: false, img: "☸️", cat: "Cloud Security", read: "15 min",
+    title: "Kubernetes Security Hardening: Beyond the Basics",
+    author: "Aisha Patel", date: "Apr 15, 2025",
+    summary: "Most K8s deployments are misconfigured by default. Here's a deep-dive into RBAC, network policies, secrets management, and runtime security.",
+    content: [
+      "Kubernetes was designed for resilience and scalability — security was largely an afterthought in the original design. The default configuration of a Kubernetes cluster is shockingly permissive: all pods can communicate with each other, service accounts have broad RBAC permissions, and secrets are stored as base64-encoded strings in etcd. If you're running Kubernetes in production without explicit security hardening, you almost certainly have critical vulnerabilities.",
+      "Role-Based Access Control (RBAC) is the foundation of Kubernetes security but is widely misconfigured. The most dangerous mistakes: using the cluster-admin ClusterRole for application service accounts, granting wildcard permissions ('*') on resources, and failing to scope roles to specific namespaces. Audit your existing RBAC configuration with kubectl-who-can or rbac-police. Implement least privilege — application pods should typically only need to list and watch specific resources in their own namespace.",
+      "Network policies are disabled by default and must be explicitly implemented with a CNI plugin that enforces them (Calico, Cilium, or Antrea). Without network policies, a compromised pod can reach any other pod in the cluster, including the Kubernetes API server. Implement a default-deny policy for all namespaces and add explicit allow rules only for required communication paths.",
+      "Secrets management in Kubernetes is broken by default. Kubernetes Secrets are simply base64-encoded (not encrypted) values stored in etcd. Anyone with read access to the Secret resource can decode them trivially. The correct approach: enable etcd encryption at rest, use an external secrets manager (HashiCorp Vault, AWS Secrets Manager, or Sealed Secrets), and ensure RBAC restricts which service accounts can read Secrets.",
+      "Runtime security with tools like Falco monitors system calls in real-time and alerts on suspicious behavior — a pod running a shell, writing to unexpected filesystem paths, or making outbound network connections to unusual destinations. Combine Falco with image scanning (Trivy, Snyk) in your CI/CD pipeline to prevent vulnerable images from reaching production.",
+    ],
+    keyPoints: ["Audit RBAC with kubectl-who-can — least privilege is essential", "Implement default-deny NetworkPolicy in every namespace", "Encrypt etcd at rest and use external secrets manager", "Runtime security: deploy Falco for real-time threat detection", "Scan container images in CI/CD with Trivy or Snyk"],
+  },
+  {
+    id: 4, featured: true, img: "🖥️", cat: "Blue Team", read: "20 min",
+    title: "Building a SOC From Scratch in 90 Days",
+    author: "James Okonkwo", date: "Apr 12, 2025",
+    summary: "A realistic roadmap for standing up a functional Security Operations Center with limited budget — covering tooling, processes, and people.",
+    content: [
+      "Building a Security Operations Center doesn't require a Fortune 500 budget. With the right architecture decisions, open-source tooling, and process design, a small team can stand up a functional SOC in 90 days. This roadmap is based on real-world implementations across organizations ranging from 500 to 5,000 employees.",
+      "Days 1-30 are about foundations. Define your detection scope: what assets are you monitoring? What are your crown jewels? Start with a SIEM — for budget-conscious organizations, Wazuh (open-source) or Microsoft Sentinel (consumption-based pricing) are excellent starting points. Collect logs from Active Directory, firewalls, endpoint agents, and your cloud environment. Build your first dashboards: authentication failures, privilege escalation events, and anomalous data transfers.",
+      "Days 31-60 focus on detection engineering. Write your first detection rules based on the MITRE ATT&CK framework. Start with high-fidelity, low-noise detections: impossible travel logins, credential stuffing patterns, lateral movement indicators. Document each rule with a playbook: what does this alert mean? What steps should the analyst take? How do you escalate? Playbooks are the difference between a reactive SOC and an effective one.",
+      "Days 61-90 are about process maturity. Implement a ticketing system (JIRA, ServiceNow, or TheHive) for incident tracking. Define SLAs for alert response times. Begin threat hunting — proactively searching for indicators of compromise that your detection rules might have missed. Establish a weekly security review meeting to discuss trends, refine detections, and share learnings across the team.",
+      "The people problem is the hardest part. Tier 1 analysts can be hired from cybersecurity bootcamp graduates — invest in their training. The real investment is in one or two senior analysts who can write detection rules, conduct threat hunting, and handle major incidents. Consider a follow-the-sun model with a managed SOC for after-hours coverage before you have the budget for 24/7 internal staffing.",
+    ],
+    keyPoints: ["Days 1-30: SIEM setup + log collection from AD, firewalls, cloud", "Days 31-60: MITRE ATT&CK-aligned detection rules + playbooks", "Days 61-90: ticketing, SLAs, threat hunting program", "Open-source stack: Wazuh + TheHive + MISP is 90% of what you need", "Senior detection engineer is your most critical hire"],
+  },
+  {
+    id: 5, featured: false, img: "💰", cat: "Offensive Security", read: "10 min",
+    title: "Bug Bounty Strategies That Actually Pay Off",
+    author: "Eva Lindqvist", date: "Apr 10, 2025",
+    summary: "After earning $200K+ in bug bounties, here are the methodologies, target selection criteria, and report writing tips that separate top earners from the rest.",
+    content: [
+      "Bug bounty hunting is not about finding the most obscure vulnerability — it's about finding high-impact issues that developers haven't thought to test. After three years and over $200,000 in payouts, I've identified the patterns that separate consistent earners from researchers who submit dozens of informational reports and wonder why they're not making money.",
+      "Target selection is your most important decision. New programs have low competition and developers who haven't yet trained their teams on secure coding. Large programs (Google, Apple, Microsoft) have the highest payouts but also the most competition — every common vulnerability has been found. The sweet spot: mid-size tech companies that have recently expanded their scope or launched a new product line. Recently acquired companies are gold — their security posture often lags behind the acquiring company's standards.",
+      "Focus your technical energy on business logic vulnerabilities and authentication flows — areas that automated scanners completely miss. IDOR (Insecure Direct Object Reference), privilege escalation chains, and OAuth implementation flaws consistently pay $1,000-$25,000+ because they require creative thinking rather than running a tool. Learn to chain low-severity findings into high-impact vulnerabilities — a self-XSS combined with CSRF might become a critical account takeover.",
+      "Report quality determines your payout. A well-written report includes: a clear one-sentence summary of the vulnerability and impact, step-by-step reproduction instructions (including curl commands or Burp Suite requests), a proof-of-concept that demonstrates real impact (not just theoretical), and a suggested remediation. Triage engineers process dozens of reports daily — make theirs as easy as possible and your reports will be prioritized.",
+    ],
+    keyPoints: ["Target new programs and recently launched features — less competition", "Business logic flaws and IDOR pay better than common CVEs", "Chain low-severity findings for higher payouts", "Report quality directly impacts payout amounts", "Automate recon (Subfinder, HTTPX, Nuclei) to scale your workflow"],
+  },
+  {
+    id: 6, featured: false, img: "📡", cat: "Threat Intel", read: "9 min",
+    title: "Threat Intelligence Feeds: Signal vs Noise",
+    author: "Raj Iyer", date: "Apr 8, 2025",
+    summary: "With hundreds of TI feeds available, knowing which ones to trust and how to operationalize them is critical. Here's a framework for evaluation.",
+    content: [
+      "Threat intelligence has a quality problem. The market is flooded with feeds claiming to provide actionable intelligence, but the reality is that most commercial and many free feeds are recycling the same data from the same sources, often with significant delays and high false positive rates. Implementing the wrong feeds can actually degrade your security operations by burying analysts in noise.",
+      "Evaluate feeds across four dimensions: timeliness (how quickly does the feed reflect newly identified threats?), accuracy (what is the false positive rate? Can you validate the data?), relevance (is this feed curated for your industry or threat profile?), and completeness (does it cover the indicators — IP addresses, domains, file hashes, URLs — that are most relevant to your detection use cases?).",
+      "The best free feeds are often the most underutilized: Emerging Threats (Proofpoint), URLhaus (abuse.ch), and the MISP threat sharing community provide high-quality, community-validated intelligence. CISA's Known Exploited Vulnerabilities catalog is essential for prioritizing patching. For commercial intelligence, Recorded Future and Mandiant Advantage consistently score highest on relevance and timeliness in independent benchmarks.",
+      "Operationalization is where most TI programs fail. Raw IOC feeds are useless if they're not automatically ingested into your SIEM and firewall rules, if there's no process for aging out stale indicators, and if there's no feedback loop from incident response to your TI team. Build a MISP instance, connect your feeds, and create SIEM rules that automatically correlate production alerts with incoming TI.",
+    ],
+    keyPoints: ["Evaluate feeds on: timeliness, accuracy, relevance, completeness", "Best free feeds: Emerging Threats, URLhaus, CISA KEV, MISP", "Commercial leaders: Recorded Future, Mandiant Advantage", "Automate IOC ingestion into SIEM and firewall blocklists", "Age out stale indicators — old IOCs become false positives"],
+  },
+];
+
+const INSIGHTS = [
+  {
+    id: 1, img: "📊", cat: "Annual Report", read: "18 min",
+    title: "The State of Ransomware 2025: Industrialization of Cybercrime",
+    author: "CyberSec Research Team", date: "Apr 22, 2025",
+    key: "Ransomware-as-a-Service ecosystems have matured into enterprise-scale operations with customer support, affiliate programs, and dedicated R&D departments.",
+    content: [
+      "Ransomware in 2025 is no longer a tool of opportunistic hackers — it's a mature, industrialized criminal enterprise. The most sophisticated ransomware groups operate with corporate structures: dedicated developers working on malware R&D, negotiation teams handling victim communications, affiliate managers recruiting and onboarding partner operators, and even customer service departments for victims who need 'help' paying ransoms.",
+      "The average ransom demand reached $2.1 million in 2025, up 89% from 2024. More troubling is the success rate: 67% of organizations that suffered a ransomware attack paid the ransom at least partially, even when law enforcement agencies advise against it. The calculation is brutal but simple — for many organizations, paying the ransom is cheaper than the alternative.",
+      "Double and triple extortion have become standard practice. Beyond encrypting files, attackers exfiltrate data before encryption and threaten to publish it on dedicated leak sites if the ransom isn't paid (double extortion). Some groups add a third layer: DDoS attacks against the victim's web infrastructure to maximize pressure. The criminal ecosystem has commoditized every element — initial access brokers sell network footholds, IAB-as-a-service provides everything a new affiliate needs to launch an attack within 24 hours of joining the group.",
+    ],
+  },
+  {
+    id: 2, img: "🧠", cat: "AI Analysis", read: "14 min",
+    title: "How Generative AI is Reshaping the Threat Landscape",
+    author: "Dr. Yuki Tanaka", date: "Apr 18, 2025",
+    key: "AI-generated malware now mutates in real time to evade signature-based detection, fundamentally changing the malware analysis paradigm.",
+    content: [
+      "The democratization of generative AI has had profound and largely negative consequences for the cybersecurity threat landscape. Tasks that previously required specialized knowledge — writing convincing phishing emails, generating functional malware code, creating deepfake audio for vishing attacks — can now be accomplished by threat actors with minimal technical skill, dramatically lowering the bar for sophisticated attacks.",
+      "WormGPT, FraudGPT, and their successors have made AI-assisted malware development accessible on dark web marketplaces for as little as $200/month. These uncensored models generate functional exploit code, help attackers understand vulnerability reports and develop proof-of-concept exploits, and draft multi-language phishing campaigns tailored to specific targets. The time between CVE publication and weaponized exploit has dropped from weeks to hours.",
+      "On the defensive side, AI is becoming equally essential. Behavioral AI models can detect novel malware based on runtime behavior rather than signatures, identify anomalous user behavior patterns that indicate account compromise, and automatically triage security alerts to reduce analyst workload. The future of cybersecurity is an AI arms race, and organizations that fail to deploy AI-powered defenses will find themselves consistently outpaced.",
+    ],
+  },
+  {
+    id: 3, img: "⚡", cat: "Policy Brief", read: "22 min",
+    title: "Critical Infrastructure Under Siege: Lessons from 2024",
+    author: "NATO Cyber Centre", date: "Apr 14, 2025",
+    key: "Nation-state actors increasingly target civilian infrastructure as a low-cost, high-impact tool for geopolitical coercion without triggering formal military responses.",
+    content: [
+      "The 2024 calendar year saw 847 confirmed cyber incidents against critical infrastructure globally, a 43% increase from 2023. Power grids, water treatment systems, financial market infrastructure, and healthcare networks were all targeted, with attacks increasingly coordinated to maximize societal disruption. The line between criminal ransomware operations and state-sponsored sabotage is deliberately blurred — providing plausible deniability for sponsoring governments.",
+      "The strategic logic is straightforward: attacking civilian infrastructure creates immediate, visible societal pain that undermines public confidence in government while stopping short of military action that could trigger a formal defense alliance response under Article 5 of the NATO treaty. Several incidents in 2024 directly preceded or accompanied diplomatic flashpoints, strongly suggesting coordinated timing between cyber operations and geopolitical events.",
+      "Resilience rather than prevention must be the primary objective for critical infrastructure. Complete prevention of determined nation-state attacks is not realistic. Organizations and governments must invest in incident response capabilities, redundant systems that can operate manually during cyber incidents, and cross-sector information sharing arrangements that provide early warning of campaigns targeting related industries.",
+    ],
+  },
+  {
+    id: 4, img: "🧑‍💼", cat: "Industry Trends", read: "11 min",
+    title: "CISO Burnout Crisis: The Human Cost of Cyber Defense",
+    author: "CyberHealth Initiative", date: "Apr 10, 2025",
+    key: "62% of CISOs report severe burnout symptoms. With average tenure dropping to 18 months, the talent retention crisis is itself becoming a security risk.",
+    content: [
+      "The Chief Information Security Officer role has become one of the most stressful positions in corporate America. A comprehensive survey of 500 CISOs across North America and Europe reveals that 62% report burnout symptoms severe enough to affect their job performance, 41% are actively considering leaving the security industry entirely, and the average CISO tenure has dropped to just 18 months — down from 26 months in 2021.",
+      "The structural causes are well understood but poorly addressed. CISOs bear personal legal liability for security failures under new SEC disclosure rules, face boards that demand security guarantees that are technically impossible to provide, and manage teams chronically understaffed relative to the threat environment. The 24/7 nature of cyber threats means there is no true off-duty time — a major breach can occur at any hour and requires immediate, sustained executive attention.",
+      "The organizational consequences of CISO churn are severe. Each leadership transition sets security programs back 6-12 months as new leaders assess the environment, build relationships, and establish priorities. In the interim, security strategy stagnates, and institutional knowledge is lost. Boards must recognize that CISO wellbeing is a security issue, not a human resources issue, and fund the people, tools, and governance structures that make the role sustainable.",
+    ],
+  },
+];
+
+const BOOKS = [
+  { id:1, icon:"🔓", title:"The Art of Intrusion", author:"Kevin Mitnick", year:2023, cat:"Offensive Security", pages:288, rating:4.8,
+    desc:"True stories of real hackers who broke into banks, government computers, and the phone system. An essential read for understanding attacker psychology.",
+    preview:"In the annals of computer intrusion, few stories are as compelling as the ones Kevin Mitnick collected from the hacking underground. These are not hypothetical scenarios — they are real events, with real consequences, recounted by the people who lived them. The first story begins in a server room in Tokyo at 2:47 AM on a Tuesday. A system administrator notices an unusual process running on the network monitoring server. By the time he investigates, the attacker is already gone — leaving behind nothing but a single modified log file and a backdoor that would persist for the next seven months...",
+    toc:["Chapter 1: The Robin Hood Hacker","Chapter 2: Blowback","Chapter 3: Cyber Heist","Chapter 4: The Replay","Chapter 5: A Hacker's Challenge"] },
+  { id:2, icon:"💻", title:"Hacking: The Art of Exploitation", author:"Jon Erickson", year:2022, cat:"Technical", pages:488, rating:4.9,
+    desc:"A deep dive into the technical aspects of exploits, shellcode, network attacks, and cryptographic weaknesses with hands-on examples.",
+    preview:"Most people, even programmers, look at hacking as something magical that only a gifted few can do. But hacking is really just a way of thinking. A hacker is someone who finds clever solutions to problems — not necessarily malicious solutions, just creative ones. This book will teach you to think like a hacker by taking you deep into the mechanics of how software actually works: memory, processors, assembly language, and the subtle differences between how code behaves in theory and how it behaves in reality. Those differences are where vulnerabilities live...",
+    toc:["Chapter 1: Introduction","Chapter 2: Programming","Chapter 3: Exploitation","Chapter 4: Networking","Chapter 5: Shellcode","Chapter 6: Countermeasures","Chapter 7: Cryptology"] },
+  { id:3, icon:"🌐", title:"The Web Application Hacker's Handbook", author:"Stuttard & Pinto", year:2024, cat:"Web Security", pages:912, rating:4.7,
+    desc:"The definitive guide to finding and exploiting web application security flaws, covering OWASP Top 10 and beyond.",
+    preview:"Web applications are the primary attack surface of the modern internet. Unlike traditional software distributed on physical media, web applications are deployed and updated continuously, often by teams of developers working under intense time pressure who may have little formal security training. The result is an ecosystem rich with vulnerabilities — SQL injection, cross-site scripting, broken authentication, insecure deserialization, and dozens of other classes of bugs that have persisted for decades despite being well understood...",
+    toc:["Chapter 1: Web Application (In)security","Chapter 2: Core Defense Mechanisms","Chapter 3: Web Application Technologies","Chapter 4: Mapping the Application","Chapter 5: Bypassing Client-Side Controls"] },
+  { id:4, icon:"🛡️", title:"Blue Team Handbook", author:"Don Murdoch", year:2023, cat:"Blue Team", pages:204, rating:4.6,
+    desc:"Concise reference guide for incident responders covering detection, analysis, and response procedures with practical checklists.",
+    preview:"This handbook exists because incident response is a discipline that requires rapid recall under pressure. When your organization is actively under attack, you don't have time to search through lengthy textbooks. You need concise, actionable checklists, command references, and decision frameworks that you can execute without hesitation. This book is organized around the incident response lifecycle as defined by NIST: Preparation, Detection and Analysis, Containment, Eradication and Recovery, and Post-Incident Activity. Each section provides the minimum necessary context and maximum actionable guidance...",
+    toc:["Section 1: Preparation","Section 2: Detection & Analysis","Section 3: Containment","Section 4: Eradication & Recovery","Section 5: Forensics Reference"] },
+  { id:5, icon:"📡", title:"Threat Intelligence and Me", author:"Chris Roberts", year:2024, cat:"Threat Intel", pages:320, rating:4.5,
+    desc:"A practical guide to building and operationalizing a threat intelligence program from the ground up in any organization.",
+    preview:"Threat intelligence is the most misunderstood discipline in cybersecurity. Organizations spend millions on threat intelligence subscriptions and then fail to operationalize the data they receive. Analysts drown in raw IOC feeds without the context to understand what they mean. Executives receive threat briefings full of jargon that don't connect to business risk. This book aims to fix that — to build a bridge between raw threat data and operational security decisions...",
+    toc:["Chapter 1: What Intelligence Actually Is","Chapter 2: Intelligence Requirements","Chapter 3: Collection","Chapter 4: Processing & Analysis","Chapter 5: Dissemination","Chapter 6: Feedback Loops"] },
+  { id:6, icon:"🏗️", title:"Zero Trust Networks", author:"Gilman & Barth", year:2023, cat:"Architecture", pages:240, rating:4.7,
+    desc:"Building secure systems in untrusted networks. Covers design principles, protocols, and implementation strategies for Zero Trust Architecture.",
+    preview:"The traditional enterprise security model assumed that everything inside the corporate network was trustworthy and everything outside was hostile. This assumption was always fragile, but the explosion of cloud computing, mobile devices, and remote work has made it completely untenable. Zero Trust Networks presents a new model: one in which trust is never assumed and must always be explicitly verified, regardless of network location. This is not a product you purchase — it is a way of designing and operating your infrastructure from first principles...",
+    toc:["Chapter 1: Zero Trust Fundamentals","Chapter 2: Trust & How We Lost It","Chapter 3: Context-Aware Proxies","Chapter 4: Authenticating Trust","Chapter 5: Authorizing Trust","Chapter 6: Encryption"] },
+  { id:7, icon:"🦠", title:"Practical Malware Analysis", author:"Sikorski & Honig", year:2022, cat:"Malware", pages:800, rating:4.9,
+    desc:"The hands-on guide to dissecting malicious software. Learn the tools, techniques, and processes used by professional malware analysts.",
+    preview:"Malware analysis is part science and part art. The science is in the tools and techniques — disassemblers, debuggers, sandbox environments, and network traffic analysis. The art is in the interpretation — understanding what a piece of malware is trying to accomplish, how it evades detection, and what it tells you about the threat actor who created it. This book teaches both. We begin with basic static analysis: examining a malware sample without executing it, looking for strings, imports, and other static indicators of behavior...",
+    toc:["Chapter 1: Basic Static Analysis","Chapter 2: Malware Analysis in VMs","Chapter 3: Basic Dynamic Analysis","Chapter 4: x86 Disassembly","Chapter 5: OllyDbg","Chapter 6: Recognizing C Constructs in Assembly"] },
+  { id:8, icon:"🎭", title:"Social Engineering: The Science of Human Hacking", author:"Christopher Hadnagy", year:2023, cat:"Social Engineering", pages:320, rating:4.6,
+    desc:"Understanding the psychological principles behind manipulation and how to build human-centered security awareness programs.",
+    preview:"Every security system has one fundamental vulnerability: the humans who use it. No firewall, no intrusion detection system, no multi-factor authentication scheme can fully compensate for a well-executed social engineering attack. Humans are wired for trust, hardwired to respond to authority, and psychologically susceptible to urgency, liking, and social proof. Attackers who understand these principles can bypass the most sophisticated technical controls simply by picking up the phone or sending a carefully crafted email...",
+    toc:["Chapter 1: A Look into the World of Social Engineering","Chapter 2: Information Gathering","Chapter 3: Pretexting","Chapter 4: Manipulation","Chapter 5: Influence Tactics","Chapter 6: Elicitation","Chapter 7: Building a Security Awareness Program"] },
+];
+
+const TOOLS_DATA = [
+  { name:"Threat Map", icon:"🗺️", desc:"Live global cyberattack visualization and heat map", color:T.red },
+  { name:"CVE Search", icon:"🔍", desc:"Search and browse latest vulnerability database", color:T.accent },
+  { name:"Hash Checker", icon:"#️⃣", desc:"Verify file hashes against known malware databases", color:T.green },
+  { name:"IP Reputation", icon:"🌐", desc:"Check IP and domain reputation against threat feeds", color:T.purple },
+  { name:"SSL Inspector", icon:"🔐", desc:"Analyze SSL/TLS certificates and cipher suites", color:T.orange },
+  { name:"OSINT Toolkit", icon:"🕵️", desc:"Open-source intelligence gathering utilities", color:T.yellow },
+];
+
+const STATS = [
+  { val:"2,365", label:"Attacks/Day", icon:"⚡" },
+  { val:"$5.3M", label:"Avg Breach Cost", icon:"💸" },
+  { val:"95%", label:"Human Factor", icon:"🧑‍💻" },
+  { val:"280", label:"Days to Detect", icon:"🕐" },
+];
+
+const TICKER = [
+  "⚡ CRITICAL: Apache Zero-Day CVE-2025-1234 under active exploitation — patch immediately",
+  "🔴 ALERT: LockBit 4.0 hits 23 EU critical infrastructure targets",
+  "🤖 AI prompt injection attacks surge 340% in Q1 2025",
+  "🛡️ CISA releases CDM scanning framework v3.2 with LLM modules",
+  "🔵 Patch Tuesday: Microsoft addresses 87 vulnerabilities including 6 critical",
+  "📊 IBM X-Force: Average breach cost reaches $5.3M globally in 2025",
+  "🌐 APT41 confirmed in 8-month semiconductor IP theft campaign",
+  "🔒 ENISA: Ransomware payments up 89% year-over-year",
+];
+
+// ─── UI PRIMITIVES ────────────────────────────────────────────────────
+function Tag({ text, color }) {
+  return <span className="tag" style={{ background:`${color}22`, color, border:`1px solid ${color}44` }}>{text}</span>;
+}
+
+function SectionHeader({ eyebrow, title, subtitle }) {
+  return (
+    <div style={{ marginBottom:48 }}>
+      {eyebrow && <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:12, color:T.accent, letterSpacing:4, marginBottom:10 }}>▸ {eyebrow}</div>}
+      <h2 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:"clamp(22px,4vw,34px)", color:T.white, letterSpacing:2, textTransform:"uppercase" }}>{title}</h2>
+      {subtitle && <p style={{ marginTop:12, color:T.muted, maxWidth:560, fontSize:15, lineHeight:1.8 }}>{subtitle}</p>}
+    </div>
+  );
+}
+
+function SearchBar({ placeholder, value, onChange }) {
+  return (
+    <div style={{ position:"relative" }}>
+      <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:T.muted }}>🔍</span>
+      <input className="input-f" placeholder={placeholder} value={value} onChange={e=>onChange(e.target.value)} style={{ paddingLeft:44 }} />
+    </div>
+  );
+}
+
+function Logo({ onClick }) {
+  return (
+    <div onClick={onClick} style={{ cursor:"pointer", display:"flex", alignItems:"center", gap:10 }}>
+      <div style={{ width:38, height:38, background:`linear-gradient(135deg,${T.accent}30,${T.green}18)`, border:`1.5px solid ${T.accent}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, boxShadow:`0 0 18px ${T.accent}44`, position:"relative" }}>
+        🛡
+        <div style={{ position:"absolute", top:-3, right:-3, width:9, height:9, background:T.green, borderRadius:"50%", boxShadow:`0 0 8px ${T.green}`, animation:"blink 2s ease-in-out infinite" }} />
+      </div>
+      <div>
+        <div style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:16, color:T.white, letterSpacing:3 }}>Cyber<span style={{ color:T.accent }}>Sec</span></div>
+        <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:9, color:T.muted, letterSpacing:2, marginTop:-2 }}>UPDATES // v3.2</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── NAVBAR ───────────────────────────────────────────────────────────
+function Navbar({ page, setPage }) {
+  const [scrolled, setScrolled] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const NAV = ["Home","News","Insights","Blog","Books","About","Contact"];
+  useEffect(() => { const h=()=>setScrolled(window.scrollY>40); window.addEventListener("scroll",h); return()=>window.removeEventListener("scroll",h); }, []);
+  const go = p => { setPage(p); setMobileOpen(false); window.scrollTo(0,0); };
+  return (
+    <nav style={{ position:"fixed", top:0, left:0, right:0, zIndex:1000, background:scrolled?`${T.bg}ee`:"transparent", backdropFilter:scrolled?"blur(20px)":"none", borderBottom:scrolled?`1px solid ${T.border}`:"1px solid transparent", transition:"all .4s", padding:"0 24px" }}>
+      <div style={{ maxWidth:1280, margin:"0 auto", display:"flex", alignItems:"center", justifyContent:"space-between", height:64 }}>
+        <Logo onClick={()=>go("Home")} />
+        <div className="hide-mobile" style={{ display:"flex", gap:28, alignItems:"center" }}>
+          {NAV.map(n=>(
+            <button key={n} onClick={()=>go(n)} className={`nav-btn ${page===n?"active":""}`} style={{ color:page===n?T.accent:T.text }}>
+              {n}
+            </button>
+          ))}
+          <button className="btn-primary" style={{ fontSize:11, padding:"8px 16px" }} onClick={()=>go("Contact")}>GET IN TOUCH</button>
+        </div>
+        <button onClick={()=>setMobileOpen(!mobileOpen)} style={{ background:"none", border:`1px solid ${T.border}`, color:T.accent, padding:"6px 10px", cursor:"pointer", fontSize:18, display:"none" }} className="mobile-ham">
+          {mobileOpen?"✕":"☰"}
+        </button>
+      </div>
+      {mobileOpen && (
+        <div style={{ background:`${T.surface}f8`, backdropFilter:"blur(20px)", borderTop:`1px solid ${T.border}`, padding:"16px 24px 24px" }}>
+          {NAV.map(n=>(
+            <button key={n} onClick={()=>go(n)} style={{ display:"block", background:"none", border:"none", cursor:"pointer", fontFamily:"'Rajdhani',sans-serif", fontWeight:700, fontSize:16, letterSpacing:2, textTransform:"uppercase", color:page===n?T.accent:T.text, padding:"12px 0", borderBottom:`1px solid ${T.border}33`, width:"100%", textAlign:"left" }}>
+              {n}
+            </button>
+          ))}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+// ─── TICKER ───────────────────────────────────────────────────────────
+function Ticker() {
+  const doubled = [...TICKER, ...TICKER];
+  return (
+    <div style={{ overflow:"hidden", background:T.surface, borderTop:`1px solid ${T.border}`, borderBottom:`1px solid ${T.border}`, padding:"9px 0" }}>
+      <div style={{ display:"flex", alignItems:"center" }}>
+        <div style={{ padding:"0 14px", fontFamily:"'Share Tech Mono',monospace", fontSize:10, color:T.bg, background:T.accent, letterSpacing:2, whiteSpace:"nowrap", height:22, display:"flex", alignItems:"center", flexShrink:0 }}>LIVE</div>
+        <div style={{ overflow:"hidden", flex:1 }}>
+          <div style={{ display:"flex", whiteSpace:"nowrap", animation:"ticker 35s linear infinite", gap:0 }}>
+            {doubled.map((item,i)=>(
+              <span key={i} style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.text, padding:"0 40px", borderRight:`1px solid ${T.border}` }}>{item}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ARTICLE / BOOK MODAL ─────────────────────────────────────────────
+function ReadModal({ item, type, onClose }) {
+  const ref = useRef();
+  useEffect(() => {
+    const h = e => { if(e.key==="Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", h); document.body.style.overflow = ""; };
+  }, [onClose]);
+
+  if (!item) return null;
+
+  const isBook = type === "book";
+
+  return (
+    <div className="modal-overlay" onClick={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal-box" ref={ref}>
+        {/* Header bar */}
+        <div style={{ height:4, background:`linear-gradient(90deg,${T.accent},${T.green})` }} />
+        <div style={{ padding:"24px 32px 0", display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+            <Tag text={item.cat} color={isBook ? T.green : (type==="insight" ? T.yellow : T.accent)} />
+            {!isBook && <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted }}>{item.date} · {item.read}</span>}
+            {isBook && <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted }}>{item.pages} pages · ★ {item.rating}</span>}
+          </div>
+          <button onClick={onClose} style={{ background:"none", border:`1px solid ${T.border}`, color:T.muted, width:32, height:32, cursor:"pointer", fontSize:16, flexShrink:0, transition:"all .2s" }}
+            onMouseEnter={e=>{e.target.style.borderColor=T.red;e.target.style.color=T.red;}} onMouseLeave={e=>{e.target.style.borderColor=T.border;e.target.style.color=T.muted;}}>
+            ✕
+          </button>
+        </div>
+
+        <div style={{ padding:"20px 32px 32px", maxHeight:"70vh", overflowY:"auto" }}>
+          {/* Icon + Title */}
+          <div style={{ display:"flex", gap:16, alignItems:"flex-start", marginBottom:24 }}>
+            {(item.icon || item.img) && <span style={{ fontSize:48, flexShrink:0 }}>{item.icon||item.img}</span>}
+            <div>
+              <h2 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:"clamp(18px,3vw,26px)", color:T.white, lineHeight:1.3 }}>{item.title}</h2>
+              {(item.author) && <p style={{ color:T.accent, fontFamily:"'Share Tech Mono',monospace", fontSize:12, marginTop:6 }}>by {item.author}</p>}
+            </div>
+          </div>
+
+          {/* Key Points / Key Insight */}
+          {item.keyPoints && (
+            <div style={{ background:T.card, border:`1px solid ${T.accent}33`, padding:20, marginBottom:24 }}>
+              <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.accent, letterSpacing:2, marginBottom:14 }}>▸ KEY TAKEAWAYS</div>
+              {item.keyPoints.map((kp,i)=>(
+                <div key={i} style={{ display:"flex", gap:10, marginBottom:8, fontSize:14, color:T.text, alignItems:"flex-start" }}>
+                  <span style={{ color:T.green, flexShrink:0, fontFamily:"'Share Tech Mono',monospace" }}>→</span>
+                  <span style={{ lineHeight:1.6 }}>{kp}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* TOC for books */}
+          {isBook && item.toc && (
+            <div style={{ background:T.card, border:`1px solid ${T.green}33`, padding:20, marginBottom:24 }}>
+              <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.green, letterSpacing:2, marginBottom:14 }}>▸ TABLE OF CONTENTS</div>
+              {item.toc.map((ch,i)=>(
+                <div key={i} style={{ display:"flex", gap:12, marginBottom:8, alignItems:"center" }}>
+                  <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted, minWidth:24 }}>{String(i+1).padStart(2,"0")}</span>
+                  <span style={{ fontSize:14, color:T.text }}>{ch}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Key insight for insights */}
+          {item.key && (
+            <div style={{ borderLeft:`3px solid ${T.yellow}`, paddingLeft:16, marginBottom:24, fontStyle:"italic", color:T.muted, fontSize:15, lineHeight:1.8 }}>
+              🔑 {item.key}
+            </div>
+          )}
+
+          {/* Content / Preview */}
+          {(item.content || item.preview) && (
+            <div>
+              <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted, letterSpacing:2, marginBottom:16 }}>
+                {isBook ? "▸ BOOK PREVIEW" : "▸ FULL ARTICLE"}
+              </div>
+              {Array.isArray(item.content)
+                ? item.content.map((para, i) => (
+                    <p key={i} style={{ fontSize:15, color:T.text, lineHeight:1.85, marginBottom:18 }}>{para}</p>
+                  ))
+                : <p style={{ fontSize:15, color:T.text, lineHeight:1.85 }}>{item.preview || item.content}</p>
+              }
+            </div>
+          )}
+
+          {/* Tags */}
+          {item.tags && (
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:24, paddingTop:20, borderTop:`1px solid ${T.border}` }}>
+              {item.tags.map(t=><Tag key={t} text={t} color={T.muted} />)}
+            </div>
+          )}
+
+          {/* Book buttons */}
+          {isBook && (
+            <div style={{ display:"flex", gap:12, marginTop:24, paddingTop:20, borderTop:`1px solid ${T.border}` }}>
+              <button className="btn-primary" style={{ flex:1 }}>📖 READ ONLINE</button>
+              <button className="btn-green" style={{ flex:1 }}>⬇ DOWNLOAD PDF</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AI CHAT WIDGET ───────────────────────────────────────────────────
+function AIChatWidget() {
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([
+    { role:"assistant", content:"👋 I'm **CyberBot** — your AI security expert. Ask me anything about cybersecurity, current threats, this platform's content, or your career in security. How can I help you today?" }
+  ]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef();
+  const inputRef = useRef();
+
+  useEffect(() => { if(open && bottomRef.current) bottomRef.current.scrollIntoView({ behavior:"smooth" }); }, [messages, open]);
+  useEffect(() => { if(open) setTimeout(()=>inputRef.current?.focus(), 100); }, [open]);
+
+  const send = async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    const userMsg = { role:"user", content:text };
+    setMessages(m=>[...m, userMsg]);
+    setInput("");
+    setLoading(true);
+    try {
+      const history = [...messages, userMsg].filter(m=>m.role!=="system").map(m=>({ role:m.role, content:m.content }));
+      const reply = await askCyberBot(history);
+      setMessages(m=>[...m, { role:"assistant", content:reply }]);
+    } catch {
+      setMessages(m=>[...m, { role:"assistant", content:"⚠️ Connection error. Please try again." }]);
+    }
+    setLoading(false);
+  };
+
+  const handleKey = e => { if(e.key==="Enter" && !e.shiftKey) { e.preventDefault(); send(); } };
+
+  const renderMsg = text =>
+    text.split("\n").map((line, i) => (
+      <span key={i}>{line.replace(/\*\*(.*?)\*\*/g, (_,m)=>m)}<br/></span>
+    ));
+
+  const SUGGESTIONS = ["What is Zero Trust?","Explain ransomware-as-a-service","How do I start a career in cybersecurity?","Latest CVE to patch?"];
+
+  return (
+    <div className="chat-widget">
+      {open && (
+        <div className="chat-panel">
+          {/* Header */}
+          <div style={{ padding:"16px 18px", borderBottom:`1px solid ${T.border}`, display:"flex", alignItems:"center", gap:12, background:T.card }}>
+            <div style={{ width:36, height:36, background:`linear-gradient(135deg,${T.accent},${T.green})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>🤖</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:800, fontSize:14, color:T.white }}>CyberBot AI</div>
+              <div style={{ fontSize:11, color:T.green, display:"flex", alignItems:"center", gap:5 }}>
+                <span style={{ width:6, height:6, background:T.green, borderRadius:"50%", display:"inline-block", animation:"blink 2s infinite" }} />
+                Powered by Google Gemini
+              </div>
+            </div>
+            <button onClick={()=>setOpen(false)} style={{ background:"none", border:"none", color:T.muted, cursor:"pointer", fontSize:18 }}>✕</button>
+          </div>
+
+          {/* Messages */}
+          <div style={{ flex:1, overflowY:"auto", padding:16, display:"flex", flexDirection:"column", gap:12, minHeight:0, maxHeight:380 }}>
+            {messages.map((msg, i) => (
+              <div key={i} className="chat-msg" style={{ display:"flex", justifyContent:msg.role==="user"?"flex-end":"flex-start" }}>
+                <div style={{
+                  maxWidth:"85%", padding:"10px 14px",
+                  background:msg.role==="user"?`${T.accent}22`:T.card,
+                  border:`1px solid ${msg.role==="user"?T.accent:T.border}`,
+                  fontSize:13, color:T.text, lineHeight:1.7,
+                }}>
+                  {renderMsg(msg.content)}
+                </div>
+              </div>
+            ))}
+            {loading && (
+              <div style={{ display:"flex", justifyContent:"flex-start" }}>
+                <div style={{ padding:"12px 16px", background:T.card, border:`1px solid ${T.border}` }}>
+                  <span className="typing-dot"/><span className="typing-dot"/><span className="typing-dot"/>
+                </div>
+              </div>
+            )}
+            <div ref={bottomRef}/>
+          </div>
+
+          {/* Suggestions (only when few messages) */}
+          {messages.length <= 2 && (
+            <div style={{ padding:"8px 12px", display:"flex", gap:6, flexWrap:"wrap", borderTop:`1px solid ${T.border}33` }}>
+              {SUGGESTIONS.map(s=>(
+                <button key={s} onClick={()=>{ setInput(s); inputRef.current?.focus(); }}
+                  style={{ background:`${T.accent}12`, border:`1px solid ${T.accent}33`, color:T.accent, padding:"4px 10px", fontSize:11, fontFamily:"'Rajdhani',sans-serif", cursor:"pointer", borderRadius:2 }}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Input */}
+          <div className="chat-input-row">
+            <input ref={inputRef} className="chat-input" placeholder="Ask a security question..." value={input} onChange={e=>setInput(e.target.value)} onKeyDown={handleKey} />
+            <button className="chat-send" onClick={send} disabled={loading}>
+              {loading?"⏳":"➤"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <button className="chat-fab" onClick={()=>setOpen(o=>!o)} title="Ask CyberBot AI">
+        {open ? "✕" : "🤖"}
+      </button>
+    </div>
+  );
+}
+
+// ─── CARDS ────────────────────────────────────────────────────────────
+function NewsCard({ item, onRead }) {
+  return (
+    <div className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:24, display:"flex", flexDirection:"column", gap:14, position:"relative", overflow:"hidden" }}>
+      <div style={{ position:"absolute", top:0, left:0, width:3, height:"100%", background:item.color, boxShadow:`0 0 10px ${item.color}` }}/>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", gap:8 }}>
+        <Tag text={item.cat} color={item.color}/>
+        <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted, whiteSpace:"nowrap" }}>{item.date}</span>
+      </div>
+      <div style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+        <span style={{ fontSize:28 }}>{item.icon}</span>
+        <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:15, color:T.white, lineHeight:1.4 }}>{item.title}</h3>
+      </div>
+      <p style={{ fontSize:13, color:T.muted, lineHeight:1.7 }}>{item.summary}</p>
+      <div style={{ display:"flex", gap:6, flexWrap:"wrap", marginTop:"auto", alignItems:"center" }}>
+        {item.tags.map(t=><Tag key={t} text={t} color={T.muted}/>)}
+        <button onClick={()=>onRead(item)} className="btn-primary" style={{ marginLeft:"auto", fontSize:11, padding:"6px 14px" }}>READ →</button>
+      </div>
+    </div>
+  );
+}
+
+function BlogCard({ item, onRead }) {
+  return (
+    <div className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, overflow:"hidden", display:"flex", flexDirection:"column" }}>
+      <div style={{ height:110, background:`linear-gradient(135deg,${T.surface},${T.card})`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:50, borderBottom:`1px solid ${T.border}`, position:"relative" }}>
+        {item.img}
+        {item.featured && <div style={{ position:"absolute", top:10, right:10, background:T.accent, color:T.bg, padding:"2px 8px", fontFamily:"'Share Tech Mono',monospace", fontSize:10 }}>FEATURED</div>}
+      </div>
+      <div style={{ padding:20, display:"flex", flexDirection:"column", gap:10, flex:1 }}>
+        <Tag text={item.cat} color={T.accent}/>
+        <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:15, color:T.white, lineHeight:1.4 }}>{item.title}</h3>
+        <p style={{ fontSize:13, color:T.muted, lineHeight:1.6, flex:1 }}>{item.summary}</p>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:8 }}>
+          <span style={{ fontSize:12, color:T.muted }}>{item.author}</span>
+          <button onClick={()=>onRead(item)} className="btn-primary" style={{ fontSize:11, padding:"6px 14px" }}>READ →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BookCard({ item, onRead }) {
+  return (
+    <div className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, display:"flex", flexDirection:"column", overflow:"hidden" }}>
+      <div style={{ height:150, background:`linear-gradient(160deg,${T.surface},#0a1628)`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:60, borderBottom:`1px solid ${T.border}`, position:"relative" }}>
+        {item.icon}
+        <div style={{ position:"absolute", bottom:0, left:0, right:0, height:2, background:`linear-gradient(90deg,transparent,${T.green},transparent)` }}/>
+      </div>
+      <div style={{ padding:18, display:"flex", flexDirection:"column", gap:10, flex:1 }}>
+        <Tag text={item.cat} color={T.green}/>
+        <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:14, color:T.white, lineHeight:1.3 }}>{item.title}</h3>
+        <p style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.accent }}>by {item.author} · {item.year}</p>
+        <div style={{ display:"flex", gap:4, marginBottom:2 }}>
+          {[...Array(5)].map((_,i)=><span key={i} style={{ color:i<Math.floor(item.rating)?T.yellow:T.border, fontSize:12 }}>★</span>)}
+          <span style={{ fontSize:11, color:T.muted, marginLeft:4 }}>{item.rating}</span>
+        </div>
+        <p style={{ fontSize:12, color:T.muted, lineHeight:1.6, flex:1 }}>{item.desc}</p>
+        <div style={{ display:"flex", gap:8, marginTop:8 }}>
+          <button onClick={()=>onRead(item)} className="btn-primary" style={{ flex:1, fontSize:11, padding:"8px 12px" }}>📖 READ</button>
+          <button onClick={()=>onRead(item)} className="btn-green" style={{ flex:1, fontSize:11, padding:"8px 12px" }}>⬇ PDF</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function InsightCard({ item, onRead }) {
+  return (
+    <div className="card-hover" onClick={()=>onRead(item)} style={{ background:T.card, border:`1px solid ${T.border}`, padding:26, cursor:"pointer", display:"flex", flexDirection:"column", gap:14 }}>
+      <div style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+        <div style={{ width:52, height:52, flexShrink:0, background:`${T.accent}15`, border:`1px solid ${T.accent}33`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:24 }}>{item.img}</div>
+        <div style={{ flex:1 }}>
+          <Tag text={item.cat} color={T.yellow}/>
+          <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:800, fontSize:16, color:T.white, marginTop:8, lineHeight:1.3 }}>{item.title}</h3>
+        </div>
+      </div>
+      <div style={{ borderLeft:`3px solid ${T.accent}44`, paddingLeft:14, fontStyle:"italic", color:T.muted, fontSize:13, lineHeight:1.7 }}>🔑 {item.key}</div>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <span style={{ fontSize:12, color:T.muted }}>{item.author} · {item.date}</span>
+        <span style={{ color:T.accent, fontFamily:"'Share Tech Mono',monospace", fontSize:12 }}>READ →</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── NEWSLETTER ───────────────────────────────────────────────────────
+function Newsletter() {
+  const [email, setEmail] = useState(""); const [done, setDone] = useState(false);
+  return (
+    <section style={{ background:`linear-gradient(135deg,${T.surface},${T.card})`, borderTop:`1px solid ${T.border}`, borderBottom:`1px solid ${T.border}`, padding:"64px 24px" }}>
+      <div style={{ maxWidth:600, margin:"0 auto", textAlign:"center" }}>
+        <div style={{ fontSize:36, marginBottom:12 }}>📡</div>
+        <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:24, color:T.white, letterSpacing:2, marginBottom:8 }}>STAY IN THE <span style={{ color:T.accent }}>LOOP</span></h3>
+        <p style={{ color:T.muted, fontSize:15, marginBottom:28 }}>Real-time threat intel, curated news, and deep-dives — delivered weekly. Read by 40,000+ security professionals.</p>
+        {done ? (
+          <div style={{ color:T.green, fontFamily:"'Share Tech Mono',monospace", letterSpacing:2, fontSize:14 }}>✓ SUBSCRIBED — WELCOME TO THE NETWORK</div>
+        ) : (
+          <div style={{ display:"flex", gap:12, flexWrap:"wrap" }}>
+            <input className="input-f" placeholder="operator@secure.net" value={email} onChange={e=>setEmail(e.target.value)} style={{ flex:1, minWidth:200 }}/>
+            <button className="btn-primary" onClick={()=>email&&setDone(true)} style={{ whiteSpace:"nowrap" }}>SUBSCRIBE NOW</button>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ─── FOOTER ───────────────────────────────────────────────────────────
+function Footer({ setPage }) {
+  const cols = {
+    Platform: ["Home","News","Insights","Blog","Books"],
+    Company: ["About","Contact"],
+    Resources: ["CVE Database","Security Tools","Free Courses","Threat Map"],
+  };
+  return (
+    <footer style={{ background:T.surface, borderTop:`1px solid ${T.border}`, padding:"56px 24px 20px" }}>
+      <div style={{ maxWidth:1280, margin:"0 auto" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:40, marginBottom:48 }}>
+          <div>
+            <Logo onClick={()=>{setPage("Home");window.scrollTo(0,0);}}/>
+            <p style={{ marginTop:16, fontSize:13, color:T.muted, lineHeight:1.9 }}>The definitive platform for cybersecurity professionals — global intelligence, expert analysis, and continuous education.</p>
+            <div style={{ marginTop:18, display:"flex", gap:10 }}>
+              {["𝕏","in","gh","▶"].map(s=>(
+                <div key={s} style={{ width:34, height:34, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", fontSize:13, color:T.muted, transition:"all .2s" }}
+                  onMouseEnter={e=>{e.currentTarget.style.borderColor=T.accent;e.currentTarget.style.color=T.accent;}}
+                  onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>{s}</div>
+              ))}
+            </div>
+          </div>
+          {Object.entries(cols).map(([sec,items])=>(
+            <div key={sec}>
+              <h4 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:12, color:T.white, letterSpacing:3, textTransform:"uppercase", marginBottom:16 }}>{sec}</h4>
+              {items.map(item=>(
+                <div key={item} onClick={()=>{setPage(item);window.scrollTo(0,0);}} style={{ fontSize:13, color:T.muted, marginBottom:10, cursor:"pointer", transition:"color .2s" }}
+                  onMouseEnter={e=>e.target.style.color=T.accent} onMouseLeave={e=>e.target.style.color=T.muted}>{item}</div>
+              ))}
+            </div>
+          ))}
+          <div>
+            <h4 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:12, color:T.white, letterSpacing:3, textTransform:"uppercase", marginBottom:16 }}>CONTACT</h4>
+            {[["✉","kevlarmackenzie@gmail.com"],["📞","0783699626"],["💬","WhatsApp: 078823106"]].map(([ico,val])=>(
+              <div key={val} style={{ display:"flex", gap:8, marginBottom:12, fontSize:13, color:T.muted, alignItems:"flex-start" }}>
+                <span>{ico}</span><span style={{ wordBreak:"break-all" }}>{val}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{ borderTop:`1px solid ${T.border}`, paddingTop:20, display:"flex", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
+          <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted }}>© 2025 CyberSec Updates. All rights reserved.</span>
+          <span style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted }}>AI: Google Gemini 1.5 Pro // SECURE // ENCRYPTED</span>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+// ─── PAGES ────────────────────────────────────────────────────────────
+
+function HomePage({ setPage, onRead }) {
+  const [count, setCount] = useState(0);
+  useEffect(()=>{ let v=0; const t=setInterval(()=>{ v+=53; setCount(Math.min(v,2365)); if(v>=2365)clearInterval(t); },18); return()=>clearInterval(t); },[]);
+  return (
+    <div className="fade-in">
+      {/* HERO */}
+      <div className="hero-grid" style={{ minHeight:"100vh", display:"flex", alignItems:"center", position:"relative", overflow:"hidden", paddingTop:64 }}>
+        <div style={{ position:"absolute", top:"20%", right:"8%", width:500, height:500, background:`radial-gradient(circle,${T.accent}08,transparent 70%)`, pointerEvents:"none" }}/>
+        <div style={{ position:"absolute", bottom:"10%", left:"3%", width:350, height:350, background:`radial-gradient(circle,${T.green}06,transparent 70%)`, pointerEvents:"none" }}/>
+        <div style={{ maxWidth:1280, margin:"0 auto", padding:"80px 24px", width:"100%" }}>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:60, alignItems:"center" }} className="grid-2col">
+            <div>
+              <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.accent, letterSpacing:4, marginBottom:16, display:"flex", alignItems:"center", gap:8 }}>
+                <span style={{ width:8, height:8, background:T.green, borderRadius:"50%", animation:"blink 2s infinite" }}/>
+                LIVE THREAT INTELLIGENCE PLATFORM
+              </div>
+              <h1 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:"clamp(36px,6vw,70px)", lineHeight:1.05, color:T.white, letterSpacing:-1 }}>
+                CYBERSECURITY<br/><span className="glow">UPDATES</span>
+              </h1>
+              <p style={{ marginTop:22, fontSize:"clamp(14px,2vw,17px)", color:T.muted, lineHeight:1.9, maxWidth:460 }}>
+                Global insights, breaking threats, expert analysis — your command center for all things cybersecurity.
+              </p>
+              <div style={{ marginTop:32, display:"flex", gap:14, flexWrap:"wrap" }}>
+                <button className="btn-primary" onClick={()=>setPage("News")}>EXPLORE THREATS</button>
+                <button className="btn-ghost" onClick={()=>setPage("Blog")}>READ BLOGS</button>
+              </div>
+              <div style={{ marginTop:48, display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:20 }}>
+                {STATS.map((s,i)=>(
+                  <div key={i} style={{ textAlign:"center" }}>
+                    <div style={{ fontSize:18, marginBottom:4 }}>{s.icon}</div>
+                    <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:"clamp(16px,2.5vw,24px)", color:T.accent, fontWeight:700, textShadow:`0 0 16px ${T.accent}66` }}>
+                      {i===0?count.toLocaleString():s.val}
+                    </div>
+                    <div style={{ fontSize:10, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginTop:4 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:"flex", justifyContent:"center", alignItems:"center", position:"relative" }}>
+              <div style={{ animation:"float 4s ease-in-out infinite", position:"relative" }}>
+                <div style={{ width:260, height:260, border:`2px solid ${T.accent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:90, background:`radial-gradient(circle,${T.accent}08,transparent 60%)`, position:"relative" }}>
+                  🛡️
+                  <div style={{ position:"absolute", inset:-20, border:`1px solid ${T.accent}22`, borderStyle:"dashed", animation:"spin 12s linear infinite" }}/>
+                </div>
+              </div>
+              {[{e:"⚡",l:"Real-time",t:"8%",r:"-12%"},{e:"🔒",l:"Secured",b:"8%",r:"-16%"},{e:"🌐",l:"Global",t:"45%",r:"-18%"}].map((b,i)=>(
+                <div key={i} style={{ position:"absolute", top:b.t, bottom:b.b, right:b.r, background:T.card, border:`1px solid ${T.border}`, padding:"10px 14px", display:"flex", alignItems:"center", gap:8, animation:`float ${3.5+i*0.5}s ease-in-out ${i*0.4}s infinite` }}>
+                  <span>{b.e}</span><span style={{ fontSize:12, color:T.text, fontFamily:"'Rajdhani',sans-serif", fontWeight:600 }}>{b.l}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Ticker/>
+
+      {/* LATEST NEWS */}
+      <section style={{ padding:"72px 24px", maxWidth:1280, margin:"0 auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:16, marginBottom:40 }}>
+          <SectionHeader eyebrow="Breaking" title="LATEST THREATS" subtitle="Real-time cybersecurity intelligence from around the globe."/>
+          <button className="btn-ghost" onClick={()=>setPage("News")}>VIEW ALL →</button>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(320px,1fr))", gap:22 }}>
+          {NEWS.slice(0,3).map(n=><NewsCard key={n.id} item={n} onRead={i=>onRead(i,"news")}/>)}
+        </div>
+      </section>
+
+      {/* TOOLS */}
+      <section style={{ background:T.surface, borderTop:`1px solid ${T.border}`, borderBottom:`1px solid ${T.border}`, padding:"72px 24px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Security Toolkit" title="ESSENTIAL TOOLS" subtitle="Quick-access security utilities for analysts, researchers, and defenders."/>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))", gap:18 }}>
+            {TOOLS_DATA.map(tool=>(
+              <div key={tool.name} className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:22, cursor:"pointer", textAlign:"center" }}>
+                <div style={{ fontSize:34, marginBottom:10 }}>{tool.icon}</div>
+                <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:14, color:T.white, marginBottom:8 }}>{tool.name}</h3>
+                <p style={{ fontSize:12, color:T.muted, lineHeight:1.6 }}>{tool.desc}</p>
+                <div style={{ marginTop:14, color:tool.color, fontFamily:"'Share Tech Mono',monospace", fontSize:11 }}>▸ LAUNCH</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURED BLOGS */}
+      <section style={{ padding:"72px 24px", maxWidth:1280, margin:"0 auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-end", flexWrap:"wrap", gap:16, marginBottom:40 }}>
+          <SectionHeader eyebrow="Knowledge Base" title="FEATURED BLOGS"/>
+          <button className="btn-ghost" onClick={()=>setPage("Blog")}>ALL POSTS →</button>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:22 }}>
+          {BLOGS.filter(b=>b.featured).map(b=><BlogCard key={b.id} item={b} onRead={i=>onRead(i,"blog")}/>)}
+        </div>
+      </section>
+
+      <Newsletter/>
+    </div>
+  );
+}
+
+function NewsPage({ onRead }) {
+  const [search, setSearch] = useState(""); const [cat, setCat] = useState("All");
+  const cats = ["All","Threat Intel","Data Breach","AI Security","Tools","Ransomware","Nation State"];
+  const filtered = NEWS.filter(n=>(cat==="All"||n.cat===cat)&&(n.title.toLowerCase().includes(search.toLowerCase())||n.summary.toLowerCase().includes(search.toLowerCase())));
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(180deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"60px 24px 40px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Daily Intelligence" title="CYBERSECURITY NEWS" subtitle="Real-time updates on threats, breaches, vulnerabilities, and tools from around the world."/>
+          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
+            <div style={{ flex:1, minWidth:240 }}><SearchBar placeholder="Search news..." value={search} onChange={setSearch}/></div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {cats.map(c=><button key={c} className={`filter-btn ${cat===c?"active":""}`} onClick={()=>setCat(c)}>{c}</button>)}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px" }}>
+        <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted, marginBottom:22 }}>{filtered.length} RESULT{filtered.length!==1?"S":""}</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(340px,1fr))", gap:22 }}>
+          {filtered.map(n=><NewsCard key={n.id} item={n} onRead={i=>onRead(i,"news")}/>)}
+        </div>
+        {!filtered.length && <div style={{ textAlign:"center", padding:80, color:T.muted }}><div style={{ fontSize:48, marginBottom:16 }}>🔍</div><div style={{ fontFamily:"'Share Tech Mono',monospace" }}>NO RESULTS FOUND</div></div>}
+      </div>
+    </div>
+  );
+}
+
+function InsightsPage({ onRead }) {
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(180deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"60px 24px 40px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Expert Analysis" title="CYBERSECURITY INSIGHTS" subtitle="Deep-dive reports, research findings, and expert perspectives shaping the security landscape."/>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px" }}>
+        {/* Featured big card */}
+        <div className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:"36px 40px", marginBottom:28, display:"grid", gridTemplateColumns:"1fr auto", gap:32, position:"relative", overflow:"hidden", cursor:"pointer" }} onClick={()=>onRead(INSIGHTS[0],"insight")}>
+          <div style={{ position:"absolute", top:0, left:0, right:0, height:3, background:`linear-gradient(90deg,${T.accent},${T.green})` }}/>
+          <div>
+            <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
+              <Tag text="FEATURED REPORT" color={T.accent}/><Tag text="2025 ANNUAL" color={T.yellow}/>
+            </div>
+            <h2 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:"clamp(20px,3vw,28px)", color:T.white, lineHeight:1.3, marginBottom:14 }}>{INSIGHTS[0].title}</h2>
+            <p style={{ color:T.muted, fontSize:14, lineHeight:1.8, marginBottom:20 }}>A comprehensive examination of how ransomware operations have evolved into sophisticated, enterprise-scale criminal enterprises with dedicated R&D teams, affiliate networks, and PR departments.</p>
+            <button className="btn-primary" onClick={e=>{e.stopPropagation();onRead(INSIGHTS[0],"insight");}}>READ FULL REPORT →</button>
+          </div>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", fontSize:100 }}>{INSIGHTS[0].img}</div>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(360px,1fr))", gap:22, marginBottom:40 }}>
+          {INSIGHTS.slice(1).map(item=><InsightCard key={item.id} item={item} onRead={i=>onRead(i,"insight")}/>)}
+        </div>
+        {/* Key takeaways panel */}
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, padding:32 }}>
+          <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:800, fontSize:18, color:T.white, marginBottom:22, letterSpacing:1 }}>📌 KEY TAKEAWAYS THIS WEEK</h3>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))", gap:18 }}>
+            {[{i:"⬆",t:"Ransomware payments up 89% YoY as double-extortion becomes standard"},{i:"🤖",t:"AI-generated phishing now bypasses 76% of traditional email filters"},{i:"🔐",t:"MFA adoption in enterprises reaches 68% but significant gaps remain"},{i:"🌍",t:"17 critical infrastructure incidents recorded globally in March alone"}].map((k,idx)=>(
+              <div key={idx} style={{ display:"flex", gap:12, alignItems:"flex-start" }}>
+                <div style={{ width:34, height:34, flexShrink:0, background:`${T.accent}15`, border:`1px solid ${T.accent}33`, display:"flex", alignItems:"center", justifyContent:"center" }}>{k.i}</div>
+                <p style={{ fontSize:13, color:T.text, lineHeight:1.7 }}>{k.t}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlogPage({ onRead }) {
+  const [search, setSearch] = useState(""); const [cat, setCat] = useState("All");
+  const cats = ["All",...new Set(BLOGS.map(b=>b.cat))];
+  const filtered = BLOGS.filter(b=>(cat==="All"||b.cat===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.summary.toLowerCase().includes(search.toLowerCase())));
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(180deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"60px 24px 40px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Knowledge Hub" title="SECURITY BLOG" subtitle="Practitioner guides, tutorials, and analysis by security professionals for the community."/>
+          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
+            <div style={{ flex:1, minWidth:240 }}><SearchBar placeholder="Search blog posts..." value={search} onChange={setSearch}/></div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {cats.map(c=><button key={c} className={`filter-btn ${cat===c?"active":""}`} onClick={()=>setCat(c)}>{c}</button>)}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))", gap:22 }}>
+          {filtered.map(b=><BlogCard key={b.id} item={b} onRead={i=>onRead(i,"blog")}/>)}
+        </div>
+        {!filtered.length && <div style={{ textAlign:"center", padding:80, color:T.muted }}><div style={{ fontSize:48, marginBottom:16 }}>📝</div><div style={{ fontFamily:"'Share Tech Mono',monospace" }}>NO POSTS FOUND</div></div>}
+      </div>
+      <Newsletter/>
+    </div>
+  );
+}
+
+function BooksPage({ onRead }) {
+  const [search, setSearch] = useState(""); const [cat, setCat] = useState("All");
+  const cats = ["All",...new Set(BOOKS.map(b=>b.cat))];
+  const filtered = BOOKS.filter(b=>(cat==="All"||b.cat===cat)&&(b.title.toLowerCase().includes(search.toLowerCase())||b.author.toLowerCase().includes(search.toLowerCase())));
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(180deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"60px 24px 40px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Digital Library" title="CYBERSECURITY BOOKS" subtitle="A curated collection of essential reading for security professionals at every level."/>
+          <div style={{ display:"flex", gap:14, flexWrap:"wrap" }}>
+            <div style={{ flex:1, minWidth:240 }}><SearchBar placeholder="Search by title or author..." value={search} onChange={setSearch}/></div>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {cats.map(c=><button key={c} className={`filter-btn ${cat===c?"active":""} ${cat===c?"":"green-filter"}`} style={cat===c?{background:`${T.green}20`,borderColor:T.green,color:T.green}:{}} onClick={()=>setCat(c)}>{c}</button>)}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"48px 24px" }}>
+        <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:11, color:T.muted, marginBottom:22 }}>{filtered.length} TITLE{filtered.length!==1?"S":""} IN LIBRARY</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(250px,1fr))", gap:22 }}>
+          {filtered.map(b=><BookCard key={b.id} item={b} onRead={i=>onRead(i,"book")}/>)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AboutPage() {
+  const values = [{i:"🎯",t:"Mission-Driven",d:"We democratize access to cybersecurity intelligence, making expert knowledge available to everyone."},{i:"🔬",t:"Research-First",d:"Every article and analysis is grounded in rigorous research and verified with multiple sources."},{i:"🌍",t:"Global Perspective",d:"Threats don't respect borders. Our coverage spans 50+ countries with a global contributor network."},{i:"🤝",t:"Community-Built",d:"Content shaped by a global community of security professionals, researchers, and practitioners."}];
+  const team = [{n:"Alex Blackwood",r:"Editor in Chief",i:"👨‍💻",s:"Threat Intelligence"},{n:"Dr. Yuki Tanaka",r:"Lead AI Analyst",i:"👩‍🔬",s:"AI & ML Security"},{n:"Marcus Webb",r:"Senior Reporter",i:"🧑‍💼",s:"Ransomware & APTs"},{n:"Aisha Patel",r:"Security Researcher",i:"👩‍💻",s:"Cloud & DevSecOps"}];
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(160deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"80px 24px", textAlign:"center", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", top:0, right:0, width:500, height:500, background:`radial-gradient(circle at 80% 20%,${T.accent}06,transparent 60%)`, pointerEvents:"none" }}/>
+        <div style={{ maxWidth:800, margin:"0 auto" }}>
+          <div style={{ fontSize:56, marginBottom:18 }}>🛡️</div>
+          <h1 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:900, fontSize:"clamp(28px,5vw,52px)", color:T.white, letterSpacing:-1 }}>ABOUT <span style={{ color:T.accent }}>CYBERSEC UPDATES</span></h1>
+          <p style={{ marginTop:20, fontSize:16, color:T.muted, lineHeight:1.9, maxWidth:680, margin:"20px auto 0" }}>A next-generation threat intelligence and security education platform, built by security professionals for the global security community. We bridge the gap between raw threat data and actionable intelligence.</p>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"72px 24px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:60, marginBottom:72, alignItems:"center" }} className="grid-2col">
+          <div>
+            <SectionHeader eyebrow="Our Purpose" title="THE MISSION"/>
+            <p style={{ color:T.muted, fontSize:15, lineHeight:1.9 }}>The cybersecurity skills gap is real. Over 3.5 million positions remain unfilled globally, and threat actors are outpacing defenders. CyberSec Updates was founded to close that gap — through education, intelligence sharing, and community building.</p>
+            <div style={{ marginTop:32, display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:20 }}>
+              {[["40K+","Subscribers"],["150+","Countries"],["5K+","Articles"],["99.9%","Uptime"]].map(([v,l])=>(
+                <div key={l} style={{ textAlign:"center" }}>
+                  <div style={{ fontFamily:"'Share Tech Mono',monospace", fontSize:24, color:T.accent, fontWeight:700 }}>{v}</div>
+                  <div style={{ fontSize:11, color:T.muted, marginTop:4 }}>{l}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
+            {values.map(v=>(
+              <div key={v.t} className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:22 }}>
+                <div style={{ fontSize:26, marginBottom:10 }}>{v.i}</div>
+                <h4 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:13, color:T.white, marginBottom:8 }}>{v.t}</h4>
+                <p style={{ fontSize:12, color:T.muted, lineHeight:1.7 }}>{v.d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <SectionHeader eyebrow="Our People" title="MEET THE TEAM" subtitle="Experts, researchers, and journalists committed to keeping you informed."/>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:22 }}>
+          {team.map(m=>(
+            <div key={m.n} className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:30, textAlign:"center" }}>
+              <div style={{ width:68, height:68, margin:"0 auto 16px", background:`${T.accent}18`, border:`2px solid ${T.accent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:32 }}>{m.i}</div>
+              <h4 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:15, color:T.white }}>{m.n}</h4>
+              <div style={{ color:T.accent, fontSize:13, margin:"6px 0" }}>{m.r}</div>
+              <Tag text={m.s} color={T.muted}/>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ContactPage() {
+  const [form, setForm] = useState({ name:"", email:"", subject:"", message:"" });
+  const [sent, setSent] = useState(false);
+  const upd = (k,v) => setForm(f=>({...f,[k]:v}));
+  return (
+    <div className="fade-in" style={{ paddingTop:80 }}>
+      <div style={{ background:`linear-gradient(180deg,${T.surface},${T.bg})`, borderBottom:`1px solid ${T.border}`, padding:"60px 24px 40px" }}>
+        <div style={{ maxWidth:1280, margin:"0 auto" }}>
+          <SectionHeader eyebrow="Get In Touch" title="CONTACT US" subtitle="Story tips, contributions, vulnerability reports, or general inquiries — we're here."/>
+        </div>
+      </div>
+      <div style={{ maxWidth:1280, margin:"0 auto", padding:"60px 24px" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1.4fr", gap:56, alignItems:"start" }} className="grid-2col">
+          <div>
+            <div style={{ display:"flex", flexDirection:"column", gap:18, marginBottom:36 }}>
+              {[{i:"✉️",l:"Email",v:"kevlarmackenzie@gmail.com",c:T.accent},{i:"📞",l:"Phone",v:"0783699626",c:T.green},{i:"💬",l:"WhatsApp",v:"078823106",c:"#25D366"},{i:"🕐",l:"Response Time",v:"Under 24 hours",c:T.yellow}].map(c=>(
+                <div key={c.l} className="card-hover" style={{ background:T.card, border:`1px solid ${T.border}`, padding:18, display:"flex", gap:14, alignItems:"center" }}>
+                  <div style={{ width:44, height:44, flexShrink:0, background:`${c.c}15`, border:`1px solid ${c.c}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20 }}>{c.i}</div>
+                  <div>
+                    <div style={{ fontSize:10, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginBottom:4 }}>{c.l}</div>
+                    <div style={{ color:T.white, fontWeight:600, fontSize:14 }}>{c.v}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ background:T.card, border:`1px solid ${T.border}`, padding:22 }}>
+              <h4 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:700, fontSize:13, color:T.white, letterSpacing:2, marginBottom:14 }}>FOLLOW US</h4>
+              <div style={{ display:"flex", gap:10 }}>
+                {[["𝕏","Twitter"],["in","LinkedIn"],["gh","GitHub"],["▶","YouTube"]].map(([icon,label])=>(
+                  <div key={label} title={label} style={{ width:42, height:42, border:`1px solid ${T.border}`, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", color:T.muted, fontSize:13, transition:"all .2s" }}
+                    onMouseEnter={e=>{e.currentTarget.style.borderColor=T.accent;e.currentTarget.style.color=T.accent;}}
+                    onMouseLeave={e=>{e.currentTarget.style.borderColor=T.border;e.currentTarget.style.color=T.muted;}}>{icon}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div style={{ background:T.card, border:`1px solid ${T.border}`, padding:36 }}>
+            {sent ? (
+              <div style={{ textAlign:"center", padding:"56px 20px" }}>
+                <div style={{ fontSize:52, marginBottom:18 }}>✅</div>
+                <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:800, fontSize:22, color:T.green, marginBottom:10 }}>MESSAGE SENT</h3>
+                <p style={{ color:T.muted }}>We'll get back to you within 24 hours. Stay secure.</p>
+                <button className="btn-ghost" onClick={()=>setSent(false)} style={{ marginTop:22 }}>SEND ANOTHER</button>
+              </div>
+            ) : (
+              <>
+                <h3 style={{ fontFamily:"'Exo 2',sans-serif", fontWeight:800, fontSize:19, color:T.white, marginBottom:26, letterSpacing:1 }}>SEND A MESSAGE</h3>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:14 }}>
+                  <div><label style={{ display:"block", fontSize:11, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginBottom:7 }}>FULL NAME *</label><input className="input-f" placeholder="John Doe" value={form.name} onChange={e=>upd("name",e.target.value)}/></div>
+                  <div><label style={{ display:"block", fontSize:11, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginBottom:7 }}>EMAIL *</label><input className="input-f" placeholder="you@domain.com" value={form.email} onChange={e=>upd("email",e.target.value)}/></div>
+                </div>
+                <div style={{ marginBottom:14 }}><label style={{ display:"block", fontSize:11, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginBottom:7 }}>SUBJECT</label><input className="input-f" placeholder="Topic of inquiry" value={form.subject} onChange={e=>upd("subject",e.target.value)}/></div>
+                <div style={{ marginBottom:22 }}><label style={{ display:"block", fontSize:11, color:T.muted, fontFamily:"'Share Tech Mono',monospace", letterSpacing:1, marginBottom:7 }}>MESSAGE *</label><textarea className="input-f" placeholder="Your message..." value={form.message} onChange={e=>upd("message",e.target.value)}/></div>
+                <button className="btn-primary" onClick={()=>{if(form.name&&form.email&&form.message)setSent(true);}} style={{ width:"100%", padding:"13px", fontSize:13 }}>SEND MESSAGE →</button>
+                <p style={{ marginTop:10, fontSize:11, color:T.muted, textAlign:"center" }}>We never share your data. Privacy policy applies.</p>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── APP ROOT ─────────────────────────────────────────────────────────
+export default function App() {
+  const [page, setPage] = useState("Home");
+  const [modal, setModal] = useState({ item:null, type:null });
+
+  const openRead = (item, type) => setModal({ item, type });
+  const closeRead = () => setModal({ item:null, type:null });
+
+  const navigate = p => { setPage(p); window.scrollTo(0,0); };
+
+  const pages = {
+    Home: <HomePage setPage={navigate} onRead={openRead}/>,
+    News: <NewsPage onRead={openRead}/>,
+    Insights: <InsightsPage onRead={openRead}/>,
+    Blog: <BlogPage onRead={openRead}/>,
+    Books: <BooksPage onRead={openRead}/>,
+    About: <AboutPage/>,
+    Contact: <ContactPage/>,
+  };
+
+  return (
+    <div style={{ minHeight:"100vh", background:T.bg }}>
+      <div className="noise"/>
+      <Navbar page={page} setPage={navigate}/>
+      <main>{pages[page] || pages.Home}</main>
+      <Footer setPage={navigate}/>
+      <AIChatWidget/>
+      {modal.item && <ReadModal item={modal.item} type={modal.type} onClose={closeRead}/>}
+    </div>
+  );
+}

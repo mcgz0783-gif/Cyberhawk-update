@@ -1,7 +1,7 @@
 {
   "name": "cybersec-updates",
   "version": "1.0.0",
-  "description": "CyberSec Updates – AI-powered cybersecurity intelligence platform",
+  "description": "CyberSec Updates – Cyberhawkug-powered cybersecurity intelligence platform",
   "private": true,
   "scripts": {
     "dev": "vite",

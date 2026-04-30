@@ -169,9 +169,7 @@ Start responses directly without preamble. Be helpful, accurate, and security-fo
 
 async function askCyberBot(messages) {
   // Detect environment: use Gemini if API key is set, else Anthropic (artifact preview)
-  const geminiKey = typeof import !== "undefined" && typeof import.meta !== "undefined"
-    ? import.meta?.env?.VITE_GEMINI_API_KEY
-    : null;
+  const geminiKey = import.meta?.env?.VITE_GEMINI_API_KEY || null;
 
   if (geminiKey) {
     // ── Google Gemini API ──────────────────────────────────────────

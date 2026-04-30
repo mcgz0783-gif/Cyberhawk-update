@@ -1,13 +1,15 @@
 {
   "name": "cybersec-updates",
   "version": "1.0.0",
+  "type": "module",
   "description": "CyberSec Updates – Cyberhawkug-powered cybersecurity intelligence platform",
   "private": true,
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src --ext js,jsx"
+    "lint": "eslint src --ext js,jsx",
+    "start": "vite"
   },
   "dependencies": {
     "react": "^18.3.1",
@@ -18,6 +20,6 @@
     "eslint": "^9.0.0",
     "eslint-plugin-react": "^7.35.0",
     "eslint-plugin-react-hooks": "^5.0.0",
-    "vite": "^8.0.10"
+    "vite": "^7.1.12"
   }
 }
